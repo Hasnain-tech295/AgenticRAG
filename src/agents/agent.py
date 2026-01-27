@@ -2,7 +2,7 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from config.config import AgentConfig
-from src.utils.tool_schema import tool_map, tools
+from utils.tools import tool_map, tools
 from utils.metrics import AgentMetrics
 from utils.ctx_manager import ContextWindowManager, ConversationManager
 from datetime import datetime
