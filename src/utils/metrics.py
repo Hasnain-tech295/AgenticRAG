@@ -11,6 +11,7 @@ class AgentMetrics:
         self.errors = []
         self.start_time: datetime | None = None
         self.end_time: datetime | None = None
+        self.tool_latencies = []
         
     def log_tool_call(self, tool_name: str, args: dict):
         self.tool_calls += 1
@@ -21,6 +22,11 @@ class AgentMetrics:
             
     def log_error(self, error: str):
         self.errors.append(error)
+        
+    def log_tool_latency(self, tool: str, latency_ms: float):
+        self.tool_latencies.append(
+            {"tool": tool, "latency_ms": latency_ms}
+        )
         
     def get_summary(self) -> Dict[str, Any]:
         duration = (
@@ -35,7 +41,8 @@ class AgentMetrics:
             "search_queries": self.search_query,
             "errors": len(self.errors),
             "duration_seconds": duration,
-            "tokens_used": self.tokens_used
+            "tokens_used": self.tokens_used,
+            "tool_latency_ms": self.tool_latencies
         }
     
     def print_summary(self):

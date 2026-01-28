@@ -1,6 +1,7 @@
 import os
 import logging
 from datetime import datetime
+from time import perf_counter
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -14,6 +15,7 @@ from tenacity import (
 )
 
 from config.config import AgentConfig
+from config.logger import generate_run_id
 from utils.tools import tool_map, tools
 from utils.metrics import AgentMetrics
 from utils.ctx_manager import ContextWindowManager, ConversationManager
@@ -24,10 +26,6 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
     base_url=os.getenv("OPENAI_BASE_URL"),
 )
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 # ---------------------------------------------------------------------
 # Custom Error Types (VERY IMPORTANT)
@@ -40,8 +38,10 @@ class TransientLLMError(TypeError):
 class FatalLLMError(RuntimeError):
     """Non-retryable LLM failure"""
 
+# AGENT BASE CLASS
 class Agent:
-    def __init__(self, config: AgentConfig):
+    def __init__(self, config: AgentConfig, logger):
+        self.logger = logger
         self.model = config.model
         self.max_iterations = config.max_iterations
         self.max_tokens = config.max_tokens_per_call
@@ -60,7 +60,7 @@ class Agent:
         wait=wait_exponential(multiplier=1, min=1, max=10),
         stop=stop_after_attempt(3),
         reraise=True,
-        before_sleep=before_sleep_log(logger, logging.WARNING),
+        before_sleep=before_sleep_log(logging.getLogger("agent"), logging.WARNING),
     )
     def _call_llm(self, messages):
         """
@@ -69,7 +69,7 @@ class Agent:
         """
 
         try:
-            logger.info("📡 Calling LLM")
+            self.logger.info("📡 Calling LLM")
             return client.chat.completions.create(
                 model=self.model,
                 temperature=self.temperature,
@@ -98,7 +98,10 @@ class Agent:
         for iteration in range(self.max_iterations):
             metrics.iterations = iteration + 1
 
-            print(f"\n--- Iteration {iteration + 1}/{self.max_iterations}")
+            self.logger.info(
+                "Iteration start",
+                extra={"iteration": iteration + 1}
+            )
 
             # Context management
             messages = ContextWindowManager().truncate_messages(
@@ -106,33 +109,44 @@ class Agent:
                 max_tokens=self.max_context_tokens,
             )
 
-            print(
-                f"📝 Context: "
-                f"{ContextWindowManager().count_tokens(messages)} tokens, "
-                f"{len(messages)} messages"
-            )
+            # print(
+            #     f"📝 Context: "
+            #     f"{ContextWindowManager().count_tokens(messages)} tokens, "
+            #     f"{len(messages)} messages"
+            # )
 
             try:
                 response = self._call_llm(messages)
+            
+            # v1
+            # except FatalLLMError as e:
+            #     metrics.log_error(f"Fatal LLM error: {e}")    
+            #     metrics.end_time = datetime.now()
+            #     return {      
+            #         "output": None,
+            #         "error": "Fatal LLM failure",
+            #         "metrics": metrics.get_summary(),
+            #     }
 
+            # except Exception as e:
+            #     metrics.log_error(f"LLM failed after retries: {e}")
+            #     metrics.end_time = datetime.now()
+            #     return {
+            #         "output": None,
+            #         "error": "LLM unavailable after retries",
+            #         "metrics": metrics.get_summary(),
+            #     }
+
+            # v2
             except FatalLLMError as e:
-                metrics.log_error(f"Fatal LLM error: {e}")
-                metrics.end_time = datetime.now()
-                return {
-                    "output": None,
-                    "error": "Fatal LLM failure",
-                    "metrics": metrics.get_summary(),
-                }
+                self.logger.error("Fatal LLM error", extra={"error": str(e)})
+                metrics.log_error(str(e))
+                break
 
             except Exception as e:
-                metrics.log_error(f"LLM failed after retries: {e}")
-                metrics.end_time = datetime.now()
-                return {
-                    "output": None,
-                    "error": "LLM unavailable after retries",
-                    "metrics": metrics.get_summary(),
-                }
-
+                self.logger.error("LLM failed after retries", extra={"error": str(e)})
+                metrics.log_error(str(e))
+                break
 
             if getattr(response, "usage", None):
                 metrics.tokens_used += response.usage.total_tokens
@@ -157,10 +171,18 @@ class Agent:
             for tool_call in message.tool_calls:
                 tool_name = tool_call.function.name
 
-                if tool_name not in [t["function"]["name"] for t in self.allowed_tools]:
-                    raise RuntimeError(f"Tool not allowed: {tool_name}")
+                self.logger.info(
+                    "Tool call",
+                    extra={
+                        "tool": tool_name,
+                        "iteration": iteration + 1,
+                    },
+                )
+                
+                # if tool_name not in [t["function"]["name"] for t in self.allowed_tools]:
+                #     raise RuntimeError(f"Tool not allowed: {tool_name}")
 
-                print(f"🔧 Calling tool: {tool_name}")
+                # print(f"🔧 Calling tool: {tool_name}")
 
                 try:
                     func, input_model = tool_map[tool_name]
@@ -170,8 +192,20 @@ class Agent:
 
                     metrics.log_tool_call(tool_name, args.model_dump())
 
+                    start_time = perf_counter()
                     result = func(**args.model_dump())
-
+                    latency_ms = (perf_counter() - start_time) * 1000
+                    metrics.log_tool_latency(tool_name, latency_ms)
+                    
+                    self.logger.info(
+                        "Tool executed",
+                        extra={
+                            "tool": tool_name,
+                            "latency_ms": latency_ms,
+                            "iteration": iteration + 1,
+                        }
+                    )
+                    
                     messages.append(
                         {
                             "role": "tool",
@@ -184,6 +218,13 @@ class Agent:
 
                 except Exception as e:
                     error_msg = f"Tool {tool_name} failed: {e}"
+                    self.logger.error(
+                        "Tool execution failed",
+                        extra={
+                            "tool": tool_name,
+                            "error": str(e)
+                        }
+                    )
                     metrics.log_error(error_msg)
 
                     messages.append(
@@ -206,4 +247,12 @@ class Agent:
         }
 
     def run(self, query: str, conversation_id: str):
+        run_id = generate_run_id()
+        
+        self.logger = logging.LoggerAdapter(
+            self.logger,
+            {"run_id": run_id, "conversation_id": conversation_id}
+        )
+        
+        self.logger.info("Agent run started")
         return self._execute(query, conversation_id)

@@ -1,6 +1,10 @@
 
 from agents.agent import Agent
 from config.config import AgentConfig
+from config.logger import setup_logger
+
+# setting up logger 
+logger = setup_logger("agent")
 
 if __name__ == "__main__":
     config = AgentConfig(
@@ -11,7 +15,7 @@ if __name__ == "__main__":
         allowed_tools=["calculator"],
     )
     
-    agent = Agent(config)
+    agent = Agent(config, logger)
     
     result = agent.run(
         query="What is 2 + 2?",
