@@ -1,0 +1,1 @@
+# pydantic model for RAG I/O
