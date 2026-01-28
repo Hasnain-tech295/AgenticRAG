@@ -6,6 +6,7 @@ from utils.tools import tool_map, tools
 from utils.metrics import AgentMetrics
 from utils.ctx_manager import ContextWindowManager, ConversationManager
 from datetime import datetime
+import tenacity
 
 load_dotenv()
 
@@ -18,7 +19,7 @@ client = OpenAI(
 )
 
 class Agent:
-    def __init__(self, config: AgentConfig = AgentConfig()):
+    def __init__(self, config: AgentConfig):
         self.model = config.model
         self.max_iterations = config.max_iterations
         self.max_tokens = config.max_tokens_per_call
@@ -31,6 +32,21 @@ class Agent:
             
         self.require_approval = config.require_approval
         
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type("TypeError"),
+        wait=tenacity.wait_exponential(multiplier=1, min=1, max=10),
+        stop=tenacity.stop_after_attempt(3)
+    )
+    def _call_llm(self, messages):
+        return client.chat.completions.create(
+            model=self.model,
+            temperature=self.temperature,
+            tools=self.allowed_tools,
+            tool_choice="auto",
+            messages=messages,
+            max_tokens=self.max_tokens
+        )
+    
     def _execute(self, query: str, conversation_id: str):
         metrics = AgentMetrics()
         metrics.start_time = datetime.now()
@@ -45,34 +61,30 @@ class Agent:
             print(f"\n--- Iteration {iteration + 1}/ {self.max_iterations}")
                
             # Truncate messages 
-            messages = ContextWindowManager().truncate_messages(messages=messages, max_tokens=3000)
+            messages = ContextWindowManager().truncate_messages(
+                messages=messages, 
+                max_tokens=self.max_context_tokens
+            )
+            
             print(f"📝 Context: {ContextWindowManager().count_tokens(messages)} tokens, {len(messages)} messages")
             
             try:  
-                response = client.chat.completions.create(
-                    model=self.model,
-                    temperature=self.temperature,
-                    tools=self.allowed_tools,
-                    tool_choice="auto",
-                    messages=messages,
-                    max_tokens=self.max_tokens
-                )
+                response = self._call_llm(messages)
                 
                 # Track tokens
-                if hasattr(response, 'usage'):
-                    metrics.tokens_used = response.usage.total_tokens
+                if hasattr(response, 'usage') and response.usage:
+                    metrics.tokens_used += response.usage.total_tokens
                     
                 message = response.choices[0].message
-                messages.append(message)
                 
                 # Checking for tool call in LLM response
                 if not message.tool_calls:
                     # Finalizing metrics
-                    metrics.end_time = datetime.now()
                     messages.append({"role": "assistant", "content": message.content})
+                    metrics.end_time = datetime.now()
                     return {
-                        "Output": message.content,
-                        "Metrics": metrics
+                        "output": message.content,
+                        "metrics": metrics.print_summary()
                     }
                 
                 # Executing tool if tool call
@@ -97,7 +109,7 @@ class Agent:
                             {
                                 "role": "tool",
                                 "tool_call_id": tool_call.id,
-                                "content": result
+                                "content": str(result)
                             }
                         )
                         
@@ -122,6 +134,10 @@ class Agent:
                 print(error_msg)
         
         metrics.end_time = datetime.now()
-        return metrics
+        return {
+            "output": None,
+            "metrics": metrics.get_summary()
+        }
                 
-metrics = AgentMetrics()
+    def run(self, query: str, conversation_id: str):
+        return self._execute(query, conversation_id)

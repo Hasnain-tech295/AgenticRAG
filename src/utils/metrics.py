@@ -1,4 +1,5 @@
 from typing import Dict, Any
+from datetime import datetime
 
 class AgentMetrics:
     """Track Agent Performance"""
@@ -8,19 +9,26 @@ class AgentMetrics:
         self.tokens_used = 0
         self.search_query = []
         self.errors = []
-        self.start_time = None
-        self.end_time = None
+        self.start_time: datetime | None = None
+        self.end_time: datetime | None = None
         
     def log_tool_call(self, tool_name: str, args: dict):
         self.tool_calls += 1
         if tool_name == "web_search":
-            self.search_query.append(args.get('query'))
+            query = args.get('query')
+            if query:
+                self.search_query.append(query)
             
     def log_error(self, error: str):
         self.errors.append(error)
         
     def get_summary(self) -> Dict[str, Any]:
-        duration = (self.end_time - self.start_time).total_seconds() if self.end_time else 0
+        duration = (
+        (self.end_time - self.start_time).total_seconds() 
+        if self.start_time and self.end_time 
+        else 0.0
+        )
+        
         return {
             "iterations": self.iterations,
             "tool_calls": self.tool_calls,
@@ -48,3 +56,4 @@ class AgentMetrics:
         print(f"❌ Errors: {summary['errors']}")
         print("="*60 + "\n")
         
+        return summary

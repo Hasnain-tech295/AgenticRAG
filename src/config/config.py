@@ -10,4 +10,4 @@ class AgentConfig(BaseModel):
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     enable_streaming: bool = False
     require_approval: bool = False
-    allowed_tools: List[str] = ["web-search", "calculator"]
+    allowed_tools: List[str] = ["web-search", "calculator"] or []
