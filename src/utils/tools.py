@@ -3,12 +3,19 @@
 # --------------------------------------------------------
 from pydantic import BaseModel, Field
 from utils.tool_schema import Tool
+from rag.pipeline import RAGPipeline
+
+rag_pipeline = RAGPipeline()
 
 class CalculatorParam(BaseModel):
     expression: str = Field(description="mathematical expression")
     
 class WebSearchParam(BaseModel):
     query: str
+    
+class RagSearchParam(BaseModel):
+    query: str
+    k: int = Field(default=5, ge=1, le=10)
 # --------------------------------------------------------
 # TOOLS
 # --------------------------------------------------------
@@ -23,6 +30,18 @@ def calculator(expression: str) -> str:
 def web_search(query) -> str:
     """Web search not implemented yet."""
     pass
+
+def rag_search(query: str, k: int = 5) -> str:
+    """Retrieve relevant documents for a query"""
+    chunks = rag_pipeline.retrieve(query=query, top_k=k)
+    
+    context = "\n\n".join(
+        f"[Source: {c['metadata'].get('source', 'unknown')}]\n{c['text']}"
+        for c in chunks
+    )
+    
+    return context
+
 # ----------------------------------------------------------
 # OPENAI TOOL Schema
 # ----------------------------------------------------------
@@ -39,12 +58,20 @@ web_search_tool = Tool(
     schema=WebSearchParam
 ).openai_tool_schema
 
+rag_search_tool = Tool(
+    name="rag_search",
+    description="Tool for rag search",
+    schema=RagSearchParam
+).openai_tool_schema
+
 tools = [
     calculator_tool,
     web_search_tool,
+    rag_search_tool
 ]
 
 tool_map = {
     "calculator": (calculator, CalculatorParam),
-    "web_search": (web_search, WebSearchParam)
+    "web_search": (web_search, WebSearchParam),
+    "rag_search": (rag_search, RagSearchParam)
 }

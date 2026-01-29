@@ -11,3 +11,11 @@ class AgentConfig(BaseModel):
     enable_streaming: bool = False
     require_approval: bool = False
     allowed_tools: List[str] = ["web-search", "calculator"] or []
+    
+class RagConfig(BaseModel):
+    """RAG system configuration"""
+    chunk_size: int = Field(default=500, description="Character per chunk")
+    chunk_overlap: int = Field(default=50, description="Overlap between chunks")
+    top_k: int = Field(default=1, description="Number of chunks to retrieve")
+    embedding_model: str = ""
+    collection_name: str = "knowledge_base"
