@@ -2,9 +2,9 @@
 # PYDANTIC MODELS for Tool args
 # --------------------------------------------------------
 from pydantic import BaseModel, Field
-from utils.tool_schema import Tool
-from rag.pipeline import RAGPipeline
-from config.config import RagConfig
+from .tool_schema import Tool
+from ..rag.pipeline import RAGPipeline
+from ..config.config import RagConfig
 
 config = RagConfig()
 

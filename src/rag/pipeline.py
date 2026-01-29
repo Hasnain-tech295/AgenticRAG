@@ -1,5 +1,5 @@
-from rag.retriever import VectorStore
-from rag.index import DocumentChunker
+from .retriever import VectorStore
+from .index import DocumentChunker
 from typing import List, Dict
 
 class RAGPipeline:

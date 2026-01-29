@@ -26,7 +26,7 @@ class VectorStore:
             embedding_function=openai_ef
         )
         
-        print(f"✅ Vector store initialized: {collection_name}")
+        print(f"[OK] Vector store initialized: {collection_name}")
         print(f"   Documents: {self.collection.count()}")
         
     def add_chunks(self, chunks: List[Dict]):

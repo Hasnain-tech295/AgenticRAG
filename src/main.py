@@ -1,7 +1,7 @@
 
-from agents.agent import Agent
-from config.config import AgentConfig
-from config.logger import setup_logger
+from .agents.agent import Agent
+from .config.config import AgentConfig
+from .config.logger import setup_logger
 from fastapi import FastAPI
 
 # setting up logger 

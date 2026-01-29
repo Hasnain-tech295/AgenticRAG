@@ -1,2 +1,9 @@
 fastapi
 chromadb
+openai
+python-dotenv
+tenacity
+tiktoken
+pydantic
+uvicorn
+jinja2
