@@ -2,29 +2,44 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green.svg)](https://fastapi.tiangolo.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green.svg)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.31-red.svg)](https://streamlit.io/)
 
-An intelligent Retrieval-Augmented Generation (RAG) system with agentic capabilities, built with FastAPI and powered by OpenAI's language models and ChromaDB for vector storage.
+An intelligent Retrieval-Augmented Generation (RAG) system with agentic capabilities, built with **FastAPI backend** and **Streamlit frontend**, powered by OpenAI's language models and ChromaDB for vector storage.
+
+## 🏗️ Architecture
+
+This project uses a **decoupled architecture**:
+- **Backend**: FastAPI server (port 8000) handles all RAG logic, agent processing, and OpenAI interactions
+- **Frontend**: Streamlit app (port 8501) provides an interactive chat interface
+- **Communication**: REST API between frontend and backend
 
 ## 🚀 Features
 
+### Backend (FastAPI)
+- **RESTful API**: Clean API endpoints for chat interactions
 - **Agentic RAG Pipeline**: Intelligent document retrieval and response generation
-- **FastAPI Backend**: High-performance REST API with automatic OpenAPI documentation
-- **ChromaDB Integration**: Persistent vector database for efficient document indexing and retrieval
-- **OpenAI Integration**: Leverages GPT models for natural language understanding and generation
-- **Structured Output**: Consistent response formatting for better API consumption
-- **Configurable**: Environment-based configuration for easy deployment
-- **Logging**: Comprehensive logging setup for monitoring and debugging
-- **Cost Tracking**: Built-in utilities for monitoring API usage costs
-- **Metrics Collection**: Query metrics and performance tracking
+- **ChromaDB Integration**: Persistent vector database for efficient document indexing
+- **OpenAI Integration**: Leverages GPT models for natural language understanding
+- **Structured Output**: Consistent response formatting with metrics
+- **Error Handling**: Comprehensive error handling and logging
+- **CORS Support**: Ready for deployment with proper CORS configuration
+
+### Frontend (Streamlit)
+- **Modern Chat Interface**: Clean, responsive UI with color-coded messages
+- **Real-time Metrics**: Display of iterations, tool calls, tokens, and latencies
+- **Conversation Management**: Persistent conversation history within sessions
+- **Backend Health Check**: Monitor backend status in real-time
+- **New Chat Function**: Easy conversation reset
+- **Status Indicators**: Visual feedback for system status and errors
 
 ## 📋 Table of Contents
 
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
-- [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
+- [API Documentation](#api-documentation)
 - [Development](#development)
 - [Contributing](#contributing)
 - [License](#license)
@@ -56,26 +71,18 @@ An intelligent Retrieval-Augmented Generation (RAG) system with agentic capabili
    ```
 
 4. **Set up environment variables:**
-   ```bash
-   export OPENAI_API_KEY="your-openai-api-key-here"
-   # Optional: Configure other settings
-   export MODEL_NAME="gpt-3.5-turbo"
-   export TEMPERATURE="0.7"
-   export MAX_TOKENS="1000"
-   export CHROMA_DB_PATH="src/chroma_db"
+   Create a `.env` file in the root directory:
+   ```env
+   OPENAI_API_KEY=your-openai-api-key-here
+   MODEL_NAME=gpt-3.5-turbo
+   TEMPERATURE=0.7
+   MAX_TOKENS=1000
+   CHROMA_DB_PATH=src/chroma_db
    ```
 
 ## ⚙️ Configuration
 
-The application uses environment variables for configuration. Create a `.env` file in the root directory:
-
-```env
-OPENAI_API_KEY=your-openai-api-key-here
-MODEL_NAME=gpt-3.5-turbo
-TEMPERATURE=0.7
-MAX_TOKENS=1000
-CHROMA_DB_PATH=src/chroma_db
-```
+The application uses environment variables for configuration.
 
 ### Configuration Options
 
@@ -87,57 +94,56 @@ CHROMA_DB_PATH=src/chroma_db
 
 ## 🚀 Usage
 
-### Running the Application
+### Starting the Application
 
-Start the FastAPI server:
+You need to run **both** the backend and frontend:
+
+#### 1. Start the Backend Server
 
 ```bash
-python src/main.py
+# From project root
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The API will be available at `http://localhost:8000`
+The backend API will be available at:
+- API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+- Health Check: http://localhost:8000/health
 
-### API Documentation
+#### 2. Start the Frontend (in a new terminal)
 
-Once running, visit `http://localhost:8000/docs` for interactive API documentation powered by Swagger UI.
-
-## 📡 API Endpoints
-
-### GET /
-Returns a welcome message.
-
-**Response:**
-```json
-{
-  "message": "Welcome to AgenticRAG"
-}
+```bash
+# From project root
+streamlit run frontend/streamlit_app.py
 ```
 
-### POST /query
-Processes a query through the RAG pipeline.
+The Streamlit app will automatically open in your browser at http://localhost:8501
 
-**Request Body:**
-```json
-{
-  "query": "Your question here"
-}
-```
+### Using the Chat Interface
 
-**Response:**
-```json
-{
-  "response": "Generated response based on retrieved documents"
-}
-```
+1. **Check Backend Status**: Ensure the green "Online" badge appears in the sidebar
+2. **Start Chatting**: Type your question in the chat input at the bottom
+3. **View Responses**: The assistant will process your query via the backend
+4. **Monitor Metrics**: Track performance metrics in the sidebar:
+   - Iterations taken
+   - Tool calls made
+   - Processing time
+   - Tokens used
+   - Search queries executed
+   - Tool latencies
+5. **New Chat**: Click "🆕 New Chat" to start a fresh conversation
+6. **Refresh Status**: Use "🔄 Refresh Backend Status" if connection issues occur
 
 ## 🏗️ Project Structure
 
 ```
 AgenticRAG/
+├── backend/
+│   └── main.py                # FastAPI application with API endpoints
+├── frontend/
+│   └── streamlit_app.py       # Streamlit chat interface
 ├── src/
-│   ├── main.py                 # Application entry point
-│   ├── app/
-│   │   └── apps.py            # FastAPI application setup
+│   ├── __init__.py
 │   ├── config/
 │   │   ├── config.py          # Configuration management
 │   │   └── logger.py          # Logging configuration
@@ -159,9 +165,57 @@ AgenticRAG/
 │   └── chroma_db/             # ChromaDB storage
 ├── requirements.txt           # Python dependencies
 ├── README.md                  # This file
+├── QUICKSTART.md             # Quick start guide
 ├── LICENSE                    # MIT License
-└── .gitignore                 # Git ignore rules
+└── .gitignore                # Git ignore rules
 ```
+
+## 📡 API Documentation
+
+### Endpoints
+
+#### `GET /`
+Root endpoint with API information
+
+#### `GET /health`
+Health check endpoint
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-30T10:00:00"
+}
+```
+
+#### `POST /chat`
+Process a chat query
+```json
+// Request
+{
+  "query": "What is RAG?",
+  "conversation_id": "optional-conversation-id"
+}
+
+// Response
+{
+  "output": "RAG stands for...",
+  "conversation_id": "abc123...",
+  "metrics": {
+    "iterations": 3,
+    "tool_calls": 2,
+    "duration_seconds": 1.5,
+    "tokens_used": 450
+  },
+  "timestamp": "2024-01-30T10:00:00"
+}
+```
+
+#### `POST /chat/stream` (Coming Soon)
+Stream chat responses in real-time
+
+#### `DELETE /conversation/{conversation_id}` (Coming Soon)
+Delete a conversation
+
+For interactive API documentation, visit: http://localhost:8000/docs
 
 ## 🧪 Development
 
@@ -176,19 +230,53 @@ pytest
 
 ```bash
 # Linting
-flake8 src/
+flake8 src/ backend/ frontend/
 
 # Formatting
-black src/
+black src/ backend/ frontend/
 ```
 
 ### Adding New Features
 
-1. Create a new branch: `git checkout -b feature/your-feature-name`
-2. Implement your changes
-3. Add tests if applicable
+1. **Backend**: Add endpoints in `backend/main.py`
+2. **Frontend**: Modify UI in `frontend/streamlit_app.py`
+3. **RAG Logic**: Update `src/` modules
 4. Update documentation
 5. Submit a pull request
+
+### Development Mode
+
+Run both servers with auto-reload:
+
+```bash
+# Terminal 1: Backend
+uvicorn backend.main:app --reload
+
+# Terminal 2: Frontend
+streamlit run frontend/streamlit_app.py
+```
+
+### Custom Port Configuration
+
+Backend:
+```bash
+uvicorn backend.main:app --reload --port 8001
+```
+
+Frontend (update BACKEND_URL in streamlit_app.py):
+```bash
+streamlit run frontend/streamlit_app.py --server.port 8502
+```
+
+## 🔒 Security Considerations
+
+For production deployment:
+1. Update CORS origins in `backend/main.py` to specific domains
+2. Add authentication middleware
+3. Use environment variables for sensitive configuration
+4. Enable HTTPS
+5. Implement rate limiting
+6. Add request validation
 
 ## 🤝 Contributing
 
@@ -206,7 +294,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework for building APIs
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework
+- [Streamlit](https://streamlit.io/) - Beautiful web apps in Python
 - [ChromaDB](https://www.trychroma.com/) - Vector database for AI applications
 - [OpenAI](https://openai.com/) - AI models and API
 
@@ -214,6 +303,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you have any questions or need help, please open an issue on GitHub or contact the maintainers.
 
+## 🔄 Recent Updates
+
+- **Architecture Change**: Separated backend (FastAPI) and frontend (Streamlit) for better scalability
+- **REST API**: Clean API design with proper endpoints and documentation
+- **Health Monitoring**: Real-time backend status checking
+- **Enhanced Error Handling**: Better error messages and connection status
+- **Improved Deployment**: Independent backend and frontend deployment
+
 ---
 
-**Note:** This project is currently in active development. Some features marked with TODO comments are not yet implemented.
+**Note:** This project is currently in active development. Some features marked with "Coming Soon" are not yet implemented.

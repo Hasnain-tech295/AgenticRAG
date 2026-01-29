@@ -1,9 +1,18 @@
-fastapi
-chromadb
-openai
-python-dotenv
-tenacity
-tiktoken
-pydantic
-uvicorn
-jinja2
+# Backend Dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# Frontend Dependencies
+streamlit==1.31.0
+requests==2.31.0
+
+# Core RAG Dependencies
+chromadb==0.4.22
+openai==1.10.0
+python-dotenv==1.0.0
+tenacity==8.2.3
+tiktoken==0.5.2
+pydantic==2.5.3
+
+# Optional: For better performance
+python-multipart==0.0.6
