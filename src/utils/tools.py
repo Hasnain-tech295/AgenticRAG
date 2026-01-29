@@ -4,8 +4,11 @@
 from pydantic import BaseModel, Field
 from utils.tool_schema import Tool
 from rag.pipeline import RAGPipeline
+from config.config import RagConfig
 
-rag_pipeline = RAGPipeline()
+config = RagConfig()
+
+rag_pipeline = RAGPipeline(config=config)
 
 class CalculatorParam(BaseModel):
     expression: str = Field(description="mathematical expression")

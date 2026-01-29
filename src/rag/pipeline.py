@@ -1,11 +1,9 @@
-from retriever import VectorStore
-from index import DocumentChunker
+from rag.retriever import VectorStore
+from rag.index import DocumentChunker
 from typing import List, Dict
-from config.config import RagConfig
 
-config = RagConfig()
 class RAGPipeline:
-    def __init__(self, config: RagConfig):
+    def __init__(self, config):
         self.chunker = DocumentChunker(
             chunk_size=config.chunk_size,
             overlap=config.chunk_overlap

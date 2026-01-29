@@ -4,6 +4,9 @@ import chromadb
 from chromadb.utils import embedding_functions
 from typing import List, Dict, Any
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 filename = Path(".\knowledge_base")
 class VectorStore:
