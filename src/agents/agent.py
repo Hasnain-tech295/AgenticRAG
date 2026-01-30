@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 import os
 import logging
 from datetime import datetime
@@ -14,11 +21,11 @@ from tenacity import (
     before_sleep_log
 )
 
-from ..config.config import AgentConfig
-from ..config.logger import generate_run_id
-from ..utils.tools import tool_map, tools
-from ..utils.metrics import AgentMetrics
-from ..utils.ctx_manager import ContextWindowManager, ConversationManager
+from config.config import AgentConfig
+from config.logger import generate_run_id
+from utils.tools import tool_map, tools
+from utils.metrics import AgentMetrics
+from utils.ctx_manager import ContextWindowManager, ConversationManager
 
 load_dotenv()
 
